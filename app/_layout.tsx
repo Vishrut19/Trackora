@@ -5,7 +5,7 @@ import { ActivityIndicator, View } from 'react-native';
 import '../global.css';
 
 function RootLayoutNav() {
-  const { user, loading } = useAuth();
+  const { session, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -14,14 +14,14 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === 'auth';
 
-    if (!user && !inAuthGroup) {
+    if (!session && !inAuthGroup) {
       // Redirect to login if not authenticated
       router.replace('/auth/login');
-    } else if (user && inAuthGroup) {
+    } else if (session && inAuthGroup) {
       // Redirect to home if authenticated
       router.replace('/');
     }
-  }, [user, loading, segments]);
+  }, [session, loading, segments]);
 
   if (loading) {
     return (

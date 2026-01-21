@@ -1,33 +1,40 @@
-import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
+import { Session } from '@supabase/supabase-js';
 import { createContext, useContext, useEffect, useState } from 'react';
-import { firebaseAuth } from './firebase.config';
+import { supabase } from './supabase';
 
 type AuthContextType = {
-    user: FirebaseAuthTypes.User | null;
+    session: Session | null;
     loading: boolean;
 };
 
 const AuthContext = createContext<AuthContextType>({
-    user: null,
+    session: null,
     loading: true,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
+    const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Listen for authentication state changes
-        const unsubscribe = firebaseAuth.onAuthStateChanged((firebaseUser) => {
-            setUser(firebaseUser);
+        // Get initial session
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setSession(session);
             setLoading(false);
         });
 
-        return unsubscribe;
+        // Listen for auth changes
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+            setSession(session);
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
 
     return (
-        <AuthContext.Provider value={{ user, loading }}>
+        <AuthContext.Provider value={{ session, loading }}>
             {children}
         </AuthContext.Provider>
     );

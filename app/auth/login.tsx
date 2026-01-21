@@ -1,28 +1,21 @@
 import { AuthButton } from '@/components/ui/AuthButton';
 import { AuthInput } from '@/components/ui/AuthInput';
-import { firebaseAuth } from '@/lib/firebase.config';
+import { getDeviceInfo } from '@/lib/device';
+import { supabase } from '@/lib/supabase';
 import { Link, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, SafeAreaView, Text, View } from 'react-native';
 
 export default function LoginScreen() {
     const router = useRouter();
-    const [phone, setPhone] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [confirmation, setConfirmation] = useState<any>(null);
 
     const handleLogin = async () => {
-        // Remove spaces and dashes
-        const cleanedPhone = phone.replace(/\s+/g, '').replace(/-/g, '');
-
-        let finalPhone = cleanedPhone;
-        if (!cleanedPhone.startsWith('+')) {
-            finalPhone = `+91${cleanedPhone}`;
-        }
-
-        if (finalPhone.length < 13) { // +91 + 10 digits
-            setError('Please enter a valid phone number');
+        if (!email.trim() || !password) {
+            setError('Please enter email and password');
             return;
         }
 
@@ -30,15 +23,43 @@ export default function LoginScreen() {
         setError('');
 
         try {
-            const confirmation = await firebaseAuth.signInWithPhoneNumber(finalPhone);
-            setConfirmation(confirmation);
-
-            router.push({
-                pathname: '/auth/verify',
-                params: { phone: finalPhone },
+            // First, authenticate user
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                email: email.trim().toLowerCase(),
+                password,
             });
+
+            if (authError) throw authError;
+
+            // Get device info
+            const deviceInfo = await getDeviceInfo();
+
+            // Check if device is registered for this user
+            const { data: devices, error: deviceError } = await supabase
+                .from('user_devices')
+                .select('*')
+                .eq('user_id', authData.user.id)
+                .eq('device_id', deviceInfo.deviceId)
+                .eq('is_active', true);
+
+            if (deviceError) throw deviceError;
+
+            if (!devices || devices.length === 0) {
+                // Device not registered - sign out and show error
+                await supabase.auth.signOut();
+                throw new Error('This device is not authorized. Please contact admin or login from your registered device.');
+            }
+
+            // Update last_used_at
+            await supabase
+                .from('user_devices')
+                .update({ last_used_at: new Date().toISOString() })
+                .eq('id', devices[0].id);
+
+            // Success - navigation handled by auth context
+            router.replace('/');
         } catch (err: any) {
-            Alert.alert('Error', err.message);
+            Alert.alert('Login Failed', err.message);
             setError(err.message);
         } finally {
             setLoading(false);
@@ -56,19 +77,29 @@ export default function LoginScreen() {
                 </Text>
 
                 <AuthInput
-                    label="Phone Number"
-                    value={phone}
-                    onChangeText={setPhone}
-                    placeholder="9876543210"
-                    keyboardType="phone-pad"
-                    error={error}
+                    label="Email"
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="you@example.com"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    error={error && !password ? error : ''}
+                />
+
+                <AuthInput
+                    label="Password"
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Enter your password"
+                    secureTextEntry
+                    error={error && password ? error : ''}
                 />
 
                 <AuthButton
-                    title="Send OTP"
+                    title="Login"
                     onPress={handleLogin}
                     loading={loading}
-                    disabled={!phone}
+                    disabled={!email || !password}
                 />
 
                 <View className="mt-8 flex-row justify-center">
