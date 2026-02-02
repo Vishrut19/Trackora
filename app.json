@@ -40,7 +40,13 @@
           }
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Trackora to use your location to verify attendance check-ins and check-outs."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

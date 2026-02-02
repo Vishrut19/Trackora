@@ -116,43 +116,52 @@ export default function SignupScreen() {
                 throw new Error('Failed to create account');
             }
 
+            // Wait a moment for the trigger to create the profile
+            // The trigger runs synchronously but we add a small delay for safety
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             // Get device info
             const deviceInfo = await getDeviceInfo();
 
-            // Register device for this user
-            const { error: deviceError } = await supabase
-                .from('user_devices')
-                .insert({
-                    user_id: authData.user.id,
-                    device_uuid: deviceInfo.deviceId,
-                    model: deviceInfo.modelName || deviceInfo.deviceName || null,
-                    os_version: deviceInfo.platform || null,
-                });
+            // Register device for this user (retry up to 3 times if profile doesn't exist yet)
+            let deviceInserted = false;
+            let retries = 3;
+            
+            while (!deviceInserted && retries > 0) {
+                const { error: deviceError } = await supabase
+                    .from('user_devices')
+                    .insert({
+                        user_id: authData.user.id,
+                        device_uuid: deviceInfo.deviceId,
+                        model: deviceInfo.modelName || deviceInfo.deviceName || null,
+                        os_version: deviceInfo.platform || null,
+                    });
 
-            if (deviceError) {
-                console.error('Device registration error:', deviceError);
+                if (!deviceError) {
+                    deviceInserted = true;
+                    console.log('✅ Device registered successfully');
+                } else if (deviceError.code === '23503') {
+                    // Foreign key violation - profile doesn't exist yet
+                    console.log('⏳ Waiting for profile to be created...');
+                    retries--;
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                } else {
+                    // Other error - log but don't block signup
+                    console.error('Device registration error:', deviceError);
+                    break;
+                }
             }
 
-            // Profile should be created automatically by trigger
-            // Wait a moment for trigger to complete, then update with email
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Update profile with email (trigger creates it with phone/email from auth metadata)
-            const { error: profileError } = await supabase
-                .from('profiles')
-                .update({
-                    full_name: fullName.trim(),
-                    email: email.trim().toLowerCase(),
-                    role: 'staff',
-                    is_active: true,
-                })
-                .eq('id', authData.user.id);
-            
-            if (profileError) {
-                console.error('Profile update error:', profileError);
-                // Don't throw - profile might already be correct from trigger
-                // Just log the error
+            if (!deviceInserted) {
+                console.warn('⚠️ Device registration failed after retries');
             }
+
+            // Profile is created by the trigger with:
+            // - id: from auth.users
+            // - email: from auth.users.email
+            // - full_name: from raw_user_meta_data.full_name (passed in signUp options)
+            // - role: from raw_user_meta_data.role (defaults to 'staff')
+            // No need to update it!
 
             Alert.alert(
                 'Account Created!',

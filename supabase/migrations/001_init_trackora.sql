@@ -81,7 +81,7 @@ create index idx_user_devices_uuid on public.user_devices(device_uuid);
 -- =====================================================
 -- ATTENDANCE
 -- =====================================================
--- Daily attendance records with GPS tracking
+-- Daily attendance records with GPS tracking and reverse geocoded addresses
 
 create table public.attendance (
   id uuid default gen_random_uuid() primary key,
@@ -92,15 +92,23 @@ create table public.attendance (
   -- Status for easy reporting
   status text default 'present' check (status in ('present', 'absent', 'half-day', 'late')),
 
-  -- Check-in details
+  -- Check-in details (GPS + reverse geocoded address - India only)
   check_in_time timestamptz,
   check_in_lat double precision,
   check_in_lng double precision,
+  check_in_city text,
+  check_in_state text,
+  check_in_pincode text,
+  check_in_address text,
 
-  -- Check-out details
+  -- Check-out details (GPS + reverse geocoded address - India only)
   check_out_time timestamptz,
   check_out_lat double precision,
   check_out_lng double precision,
+  check_out_city text,
+  check_out_state text,
+  check_out_pincode text,
+  check_out_address text,
 
   -- Calculated field
   total_minutes integer,
@@ -244,9 +252,9 @@ alter table location_logs enable row level security;
 -- RLS POLICIES - PROFILES
 -- =====================================================
 
--- Staff can read their own profile
+-- Staff can read their own profile (MUST target 'authenticated' role)
 create policy "users_read_own_profile"
-on profiles for select
+on profiles for select to authenticated
 using (auth.uid() = id);
 
 -- Managers can read profiles of users in their teams
@@ -263,14 +271,17 @@ on profiles for select
 using (public.is_admin());
 
 -- Users can insert their own profile (fallback if trigger fails)
+-- MUST target 'authenticated' role for newly signed-up users
 create policy "users_insert_own_profile"
-on profiles for insert
+on profiles for insert to authenticated
 with check (auth.uid() = id);
 
 -- Users can update their own profile (name only, not role)
+-- MUST target 'authenticated' role for logged-in users
 create policy "users_update_own_profile"
-on profiles for update
-using (auth.uid() = id);
+on profiles for update to authenticated
+using (auth.uid() = id)
+with check (auth.uid() = id);
 
 -- Admins can update any profile (including role assignment)
 create policy "admins_update_all_profiles"
@@ -358,7 +369,7 @@ using (public.is_admin());
 
 -- Users can read their own device
 create policy "users_read_own_device"
-on user_devices for select
+on user_devices for select to authenticated
 using (auth.uid() = user_id);
 
 -- Admins can read all devices
@@ -366,14 +377,14 @@ create policy "admins_read_all_devices"
 on user_devices for select
 using (public.is_admin());
 
--- Users can insert their own device
+-- Users can insert their own device (MUST target 'authenticated' role)
 create policy "users_insert_own_device"
-on user_devices for insert
+on user_devices for insert to authenticated
 with check (auth.uid() = user_id);
 
 -- Users can update their own device
 create policy "users_update_own_device"
-on user_devices for update
+on user_devices for update to authenticated
 using (auth.uid() = user_id);
 
 -- Admins can update any device (for deauthorization)

@@ -1,8 +1,10 @@
 import { AuthProvider, useAuth } from '@/lib/auth-context';
+import { getDeviceInfo } from '@/lib/device';
+import { supabase } from '@/lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Alert, View } from 'react-native';
 import '../global.css';
 
 const HAS_VISITED_KEY = 'trackora_has_visited';
@@ -39,10 +41,66 @@ function RootLayoutNav() {
             router.replace('/auth/signup');
           }
         }
-      } else if (session && inAuthGroup) {
-        // Has session but on auth pages - redirect to home
-        console.log('➡️ Redirecting to HOME');
-        router.replace('/');
+      } else {
+        // Has session - verify device before redirecting or allowing access
+        // BUT: Skip device check if we're on auth pages (signup just completed)
+        // The device will be registered by the signup flow before we leave auth pages
+        if (inAuthGroup) {
+          // On auth pages with a session - the signup flow will handle device registration
+          // Wait a moment then redirect to home (signup screen will do device registration)
+          console.log('➡️ On auth page with session, waiting for signup to complete...');
+          // Don't do device check here - let the signup process complete first
+          // The user will be redirected to home by the signup alert callback
+          return;
+        }
+
+        // Not on auth pages - do device verification
+        try {
+          const deviceInfo = await getDeviceInfo();
+          
+          // Retry device check a few times (device might still be registering)
+          let devices = null;
+          let retries = 3;
+          
+          while (retries > 0) {
+            const { data, error } = await supabase
+              .from('user_devices')
+              .select('*')
+              .eq('user_id', session.user.id)
+              .eq('device_uuid', deviceInfo.deviceId)
+              .eq('is_active', true);
+
+            if (error) {
+              console.error('Error verifying device:', error);
+              break;
+            }
+
+            if (data && data.length > 0) {
+              devices = data;
+              break;
+            }
+
+            // No device found - wait and retry
+            console.log('⏳ Device not found, retrying...');
+            retries--;
+            if (retries > 0) {
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
+          }
+
+          const isDeviceValid = devices && devices.length > 0;
+
+          if (!isDeviceValid) {
+            console.log('🚫 Device not authorized after retries. Signing out.');
+            await supabase.auth.signOut();
+            Alert.alert('Unauthorized Device', 'This device is not registered for your account. Please contact your administrator.');
+            return; // Exit, signOut will trigger re-route
+          }
+
+          console.log('✅ Device verified successfully');
+        } catch (e) {
+          console.error('Device check failed', e);
+        }
       }
 
       setIsCheckingFirstVisit(false);
