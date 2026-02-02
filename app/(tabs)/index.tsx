@@ -1,10 +1,11 @@
 import { ActionCard } from '@/components/ActionCard';
+import { useLocationTracking } from '@/hooks/useLocationTracking';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, AppState, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
@@ -21,6 +22,9 @@ export default function HomeScreen() {
   // Timer State
   const [elapsedTime, setElapsedTime] = useState<string>('00:00:00');
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Location Tracking
+  const { isTracking, startTracking, stopTracking, checkStatus } = useLocationTracking();
 
   useEffect(() => {
     // Only load data after session is confirmed (loading is false) and session exists
@@ -70,6 +74,43 @@ export default function HomeScreen() {
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
+    };
+  }, [attendance]);
+
+  // Check and resume tracking if user is checked in
+  useEffect(() => {
+    if (attendance?.check_in_time && !attendance.check_out_time) {
+      // User is checked in, ensure tracking is active
+      checkStatus().then(async () => {
+        if (!isTracking) {
+          // Only start tracking if app is in foreground (Android restriction)
+          const appState = AppState.currentState;
+          if (appState === 'active') {
+            console.log('User is checked in but tracking is not active, resuming...');
+            await startTracking();
+          } else {
+            console.log('App is in background, will resume tracking when app becomes active');
+          }
+        }
+      });
+    }
+  }, [attendance, isTracking]);
+
+  // Resume tracking when app comes to foreground
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', async (nextAppState) => {
+      if (nextAppState === 'active' && attendance?.check_in_time && !attendance.check_out_time) {
+        // App came to foreground and user is checked in
+        const trackingActive = await checkStatus();
+        if (!trackingActive) {
+          console.log('App became active, resuming tracking...');
+          await startTracking();
+        }
+      }
+    });
+
+    return () => {
+      subscription.remove();
     };
   }, [attendance]);
 
@@ -233,12 +274,23 @@ export default function HomeScreen() {
       if (error) throw error;
 
       setAttendance(data);
-      
+
+      // Start location tracking
+      const trackingStarted = await startTracking();
+      if (!trackingStarted) {
+        console.warn('Failed to start location tracking');
+        Alert.alert(
+          'Warning',
+          'Check-in successful, but location tracking could not be started. Please check location permissions.'
+        );
+      }
+
       // Show success with location info
-      const locationInfo = location.city && location.state 
-        ? `\n📍 ${location.city}, ${location.state}` 
+      const locationInfo = location.city && location.state
+        ? `\n📍 ${location.city}, ${location.state}`
         : '';
-      Alert.alert('Success', `You have checked in successfully!${locationInfo}`);
+      const trackingInfo = trackingStarted ? '\n\n🔄 Location tracking started' : '';
+      Alert.alert('Success', `You have checked in successfully!${locationInfo}${trackingInfo}`);
     } catch (error: any) {
       console.error('Check-in error:', error);
       Alert.alert('Error', error.message || 'Failed to check in');
@@ -285,12 +337,19 @@ export default function HomeScreen() {
       if (error) throw error;
 
       setAttendance(data);
-      
+
+      // Stop location tracking
+      const trackingStopped = await stopTracking();
+      if (!trackingStopped) {
+        console.warn('Failed to stop location tracking');
+      }
+
       // Show success with location info
-      const locationInfo = location.city && location.state 
-        ? `\n📍 ${location.city}, ${location.state}` 
+      const locationInfo = location.city && location.state
+        ? `\n📍 ${location.city}, ${location.state}`
         : '';
-      Alert.alert('Success', `You have checked out successfully!${locationInfo}`);
+      const trackingInfo = trackingStopped ? '\n\n⏹️ Location tracking stopped' : '';
+      Alert.alert('Success', `You have checked out successfully!${locationInfo}${trackingInfo}`);
     } catch (error: any) {
       console.error('Check-out error:', error);
       Alert.alert('Error', error.message || 'Failed to check out');
@@ -344,10 +403,17 @@ export default function HomeScreen() {
             {/* Show check-in location */}
             {(attendance.check_in_city || attendance.check_in_address) && (
               <Text className="text-green-700 dark:text-green-400 text-xs mb-2">
-                📍 {attendance.check_in_city && attendance.check_in_state 
+                📍 {attendance.check_in_city && attendance.check_in_state
                   ? `${attendance.check_in_city}, ${attendance.check_in_state}${attendance.check_in_pincode ? ` - ${attendance.check_in_pincode}` : ''}`
                   : attendance.check_in_address}
               </Text>
+            )}
+
+            {/* Location tracking status */}
+            {isTracking && (
+              <View className="flex-row items-center mb-2 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded">
+                <Text className="text-blue-600 dark:text-blue-400 text-xs font-medium">🔄 Location Tracking Active</Text>
+              </View>
             )}
 
             <View className="flex-row items-center justify-center py-4 bg-white/50 dark:bg-black/20 rounded mb-2">
