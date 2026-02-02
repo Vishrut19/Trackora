@@ -57,11 +57,11 @@ function RootLayoutNav() {
         // Not on auth pages - do device verification
         try {
           const deviceInfo = await getDeviceInfo();
-          
+
           // Retry device check a few times (device might still be registering)
           let devices = null;
           let retries = 3;
-          
+
           while (retries > 0) {
             const { data, error } = await supabase
               .from('user_devices')
@@ -118,8 +118,9 @@ function RootLayoutNav() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
+    <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="history" />
       <Stack.Screen name="auth/login" />
       <Stack.Screen name="auth/signup" />
     </Stack>
