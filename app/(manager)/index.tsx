@@ -3,9 +3,9 @@ import { useLocationTracking } from '@/hooks/useLocationTracking';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import * as Location from 'expo-location';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { CheckCircle2, Clock, History as HistoryIcon, LogOut, Map as MapIcon, Users } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -35,13 +35,15 @@ export default function ManagerDashboard() {
     // Location Tracking
     const { isTracking, startTracking, stopTracking, checkStatus } = useLocationTracking();
 
-    useEffect(() => {
-        if (!loading && session?.user) {
-            loadProfile();
-            checkAttendance();
-            loadTeamStats();
-        }
-    }, [session, loading]);
+    useFocusEffect(
+        useCallback(() => {
+            if (!loading && session?.user) {
+                loadProfile();
+                checkAttendance();
+                loadTeamStats();
+            }
+        }, [session, loading])
+    );
 
     // Timer Effect
     useEffect(() => {
