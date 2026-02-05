@@ -60,8 +60,8 @@ export function AppSidebar() {
         <Sidebar variant="inset" collapsible="icon">
             <SidebarHeader className="p-4 group-data-[collapsible=icon]:p-2">
                 <div className="flex items-center gap-3 px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 p-1.5 shadow-[0_0_20px_rgba(59,130,246,0.2)] border border-primary/20">
-                        <img src="/logo.png" alt="WorkFlow Logo" className="h-full w-full object-contain" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary/10 shadow-[0_0_20px_rgba(59,130,246,0.2)] border border-primary/20">
+                        <img src="/logo.png" alt="WorkFlow Logo" className="h-full w-full object-cover" />
                     </div>
                     <div className="flex flex-col gap-0.5 leading-none min-w-0 group-data-[collapsible=icon]:hidden">
                         <span className="font-black tracking-tight text-lg truncate">WorkFlow</span>
@@ -124,8 +124,8 @@ export function AppSidebar() {
                                     size="lg"
                                     className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:!p-0"
                                 >
-                                    <div className="h-8 w-8 rounded-lg bg-primary/10 p-1 border border-primary/20">
-                                        <img src="/logo.png" alt="WorkFlow Logo" className="h-full w-full object-contain" />
+                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20 text-sm font-bold text-primary">
+                                        {(user?.user_metadata?.full_name as string)?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || '?'}
                                     </div>
                                     <div className="grid flex-1 min-w-0 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
                                         <span className="truncate font-semibold">{user?.email?.split('@')[0]}</span>
@@ -142,8 +142,8 @@ export function AppSidebar() {
                             >
                                 <DropdownMenuLabel className="p-0 font-normal">
                                     <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                                        <div className="h-8 w-8 rounded-lg bg-primary/10 p-1 border border-primary/20">
-                                            <img src="/logo.png" alt="WorkFlow Logo" className="h-full w-full object-contain" />
+                                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20 text-sm font-bold text-primary">
+                                            {(user?.user_metadata?.full_name as string)?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || '?'}
                                         </div>
                                         <div className="grid flex-1 text-left text-sm leading-tight">
                                             <span className="truncate font-semibold">{user?.email}</span>

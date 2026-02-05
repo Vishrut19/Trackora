@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
-import { History as HistoryIcon, LogOut, User as UserIcon } from 'lucide-react-native';
+import { History as HistoryIcon, LogOut } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -513,7 +513,9 @@ export default function HomeScreen() {
                     onPress={() => router.push('/profile')}
                     className="w-10 h-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 active:bg-gray-200 dark:active:bg-gray-700"
                 >
-                    <UserIcon size={24} color="#6B7280" />
+                    <Text className="text-base font-bold text-gray-600 dark:text-gray-300">
+                        {profile?.full_name?.charAt(0).toUpperCase() || '?'}
+                    </Text>
                 </TouchableOpacity>
                 <View className="flex-row items-center gap-3">
                     <TouchableOpacity

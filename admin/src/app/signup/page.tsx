@@ -29,20 +29,14 @@ export default function SignupPage() {
         try {
             const cleanEmail = email.trim().toLowerCase();
 
-            const ADMIN_EMAILS = [
-                'admin@workflow.com',
-                'vishrutagarwalla@gmail.com',
-            ];
-
-            const isSystemAdmin = ADMIN_EMAILS.includes(cleanEmail);
-
+            // Signup from admin dashboard = admin by default
             const { data, error } = await supabase.auth.signUp({
                 email: cleanEmail,
                 password,
                 options: {
                     data: {
                         full_name: fullName.trim(),
-                        role: isSystemAdmin ? 'admin' : 'staff',
+                        role: 'admin',
                     },
                 },
             });
@@ -186,7 +180,7 @@ export default function SignupPage() {
 
                 <div className="text-center">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-                        Only whitelisted emails granted Admin access
+                        Accounts created here have Admin access
                     </p>
                 </div>
             </div>

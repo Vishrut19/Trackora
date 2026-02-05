@@ -1,7 +1,7 @@
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Calendar, Info, LogOut, MapPin, User } from 'lucide-react-native';
+import { ArrowLeft, Calendar, Info, LogOut, MapPin } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -153,7 +153,9 @@ export default function MemberDetailScreen() {
                 {/* Profile Header */}
                 <View className="px-6 py-6 items-center">
                     <View className="w-24 h-24 rounded-full bg-blue-100 dark:bg-blue-900/50 items-center justify-center mb-4">
-                        <User size={48} color="#2563EB" />
+                        <Text className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                            {member?.full_name?.charAt(0).toUpperCase() || '?'}
+                        </Text>
                     </View>
                     <Text className="text-2xl font-bold text-gray-900 dark:text-white">{member?.full_name}</Text>
                     <Text className="text-gray-500 dark:text-gray-400">{member?.email || 'No email provided'}</Text>

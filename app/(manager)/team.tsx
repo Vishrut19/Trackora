@@ -1,7 +1,7 @@
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { ArrowLeft, LogOut, Search, Trash2, User, UserPlus, Users } from 'lucide-react-native';
+import { ArrowLeft, LogOut, Search, Trash2, UserPlus, Users } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -162,7 +162,9 @@ export default function TeamManagementScreen() {
                     className="flex-1 flex-row items-center"
                 >
                     <View className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 items-center justify-center mr-3">
-                        <User size={20} color="#9CA3AF" />
+                        <Text className="text-sm font-bold text-gray-600 dark:text-gray-300">
+                            {item.full_name?.charAt(0).toUpperCase() || '?'}
+                        </Text>
                     </View>
                     <View className="flex-1">
                         <Text className="text-base font-bold text-gray-900 dark:text-white" numberOfLines={1}>{item.full_name}</Text>
