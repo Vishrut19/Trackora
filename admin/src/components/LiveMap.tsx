@@ -5,7 +5,7 @@ import { Mapcn } from '@/components/ui/map';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { MapPin } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Marker, Popup } from 'react-map-gl/maplibre';
 
 interface LiveMapProps {
@@ -75,7 +75,7 @@ export default function LiveMap({ onLocationsUpdated }: LiveMapProps) {
     return (
         <Mapcn>
             {locations.map((loc) => (
-                <React.Fragment key={loc.user_id}>
+                <Fragment key={loc.user_id}>
                     <Marker
                         latitude={loc.latitude}
                         longitude={loc.longitude}
@@ -124,7 +124,7 @@ export default function LiveMap({ onLocationsUpdated }: LiveMapProps) {
                             </div>
                         </Popup>
                     )}
-                </React.Fragment>
+                </Fragment>
             ))}
         </Mapcn>
     );
