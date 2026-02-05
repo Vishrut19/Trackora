@@ -4,10 +4,23 @@ import { getDeviceInfo } from '@/lib/device';
 import { supabase } from '@/lib/supabase';
 import { Link, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, SafeAreaView, Text, View } from 'react-native';
+import {
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    SafeAreaView,
+    Text,
+    useColorScheme,
+    View,
+} from 'react-native';
+
+const TINT_LIGHT = '#0a7ea4';
 
 export default function SignupScreen() {
     const router = useRouter();
+    const colorScheme = useColorScheme();
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -54,25 +67,20 @@ export default function SignupScreen() {
         setErrors({ name: '', email: '', password: '', confirm: '' });
 
         try {
-            // Clean email
             const cleanEmail = email.trim().toLowerCase();
 
-            // Define admin emails that should get the 'admin' role automatically
-            // You can add your email here to become an admin upon signup
             const ADMIN_EMAILS = [
                 'admin@workflow.com',
-                'vishrutagarwalla@gmail.com', // Adding your email as an example
+                'vishrutagarwalla@gmail.com',
             ];
 
             const isSystemAdmin = ADMIN_EMAILS.includes(cleanEmail);
 
-            // Validate email format more strictly
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(cleanEmail)) {
                 throw new Error('Please enter a valid email address.');
             }
 
-            // Create user account
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: cleanEmail,
                 password,
@@ -85,27 +93,20 @@ export default function SignupScreen() {
             });
 
             if (authError) {
-                // Log the full error for debugging
                 console.error('Supabase Auth Error:', {
                     message: authError.message,
                     status: authError.status,
                     name: authError.name,
                 });
 
-                // Provide more user-friendly error messages
                 let errorMessage = authError.message;
 
-                // Handle common Supabase auth errors
                 if (authError.message.includes('already registered') ||
                     authError.message.includes('already exists') ||
                     authError.message.includes('User already registered') ||
                     authError.message.includes('already been registered')) {
                     errorMessage = 'This email is already registered. Please try logging in instead.';
                 } else if (authError.message.includes('invalid') && authError.message.includes('email')) {
-                    // This often happens when:
-                    // 1. Email confirmation is enabled but not configured
-                    // 2. Email already exists (Supabase sometimes returns "invalid" for existing emails)
-                    // 3. Email domain is blocked
                     errorMessage = `Email signup failed. This might be because:\n\n• Email confirmation is required but not configured\n• Email already exists (try logging in)\n• Email domain restrictions\n\nError: ${authError.message}\n\nPlease check your Supabase Auth settings or try a different email.`;
                 } else if (authError.message.includes('password')) {
                     errorMessage = 'Password does not meet requirements. Please use at least 6 characters.';
@@ -120,14 +121,10 @@ export default function SignupScreen() {
                 throw new Error('Failed to create account');
             }
 
-            // Wait a moment for the trigger to create the profile
-            // The trigger runs synchronously but we add a small delay for safety
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            // Get device info
             const deviceInfo = await getDeviceInfo();
 
-            // Register device for this user (retry up to 3 times if profile doesn't exist yet)
             let deviceInserted = false;
             let retries = 3;
 
@@ -145,12 +142,10 @@ export default function SignupScreen() {
                     deviceInserted = true;
                     console.log('✅ Device registered successfully');
                 } else if (deviceError.code === '23503') {
-                    // Foreign key violation - profile doesn't exist yet
                     console.log('⏳ Waiting for profile to be created...');
                     retries--;
                     await new Promise(resolve => setTimeout(resolve, 500));
                 } else {
-                    // Other error - log but don't block signup
                     console.error('Device registration error:', deviceError);
                     break;
                 }
@@ -159,13 +154,6 @@ export default function SignupScreen() {
             if (!deviceInserted) {
                 console.warn('⚠️ Device registration failed after retries');
             }
-
-            // Profile is created by the trigger with:
-            // - id: from auth.users
-            // - email: from auth.users.email
-            // - full_name: from raw_user_meta_data.full_name (passed in signUp options)
-            // - role: from raw_user_meta_data.role (defaults to 'staff')
-            // No need to update it!
 
             Alert.alert(
                 'Account Created!',
@@ -181,66 +169,109 @@ export default function SignupScreen() {
         }
     };
 
+    const linkColor = colorScheme === 'dark' ? '#fff' : TINT_LIGHT;
+
+    const cardStyle = {
+        maxWidth: 400,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 2,
+    };
+
     return (
         <SafeAreaView className="flex-1 bg-white dark:bg-black">
-            <View className="flex-1 px-6 justify-center">
-                <Text className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">
-                    Create Account
-                </Text>
-                <Text className="text-gray-500 mb-8 dark:text-gray-400">
-                    Join WorkFlow to start tracking your work
-                </Text>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                className="flex-1"
+            >
+                <ScrollView
+                    className="flex-1"
+                    contentContainerStyle={{
+                        flexGrow: 1,
+                        justifyContent: 'center',
+                        paddingHorizontal: 24,
+                        paddingVertical: 32,
+                    }}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <Text className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                        WorkFlow
+                    </Text>
+                    <Text className="text-gray-500 dark:text-gray-400 text-sm mb-6">
+                        Join to start tracking your work
+                    </Text>
 
-                <AuthInput
-                    label="Full Name"
-                    value={fullName}
-                    onChangeText={setFullName}
-                    placeholder="John Doe"
-                    error={errors.name}
-                />
+                    <View
+                        className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-6 w-full self-center"
+                        style={cardStyle}
+                    >
+                        <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                            Create Account
+                        </Text>
+                        <Text className="text-gray-500 dark:text-gray-400 text-sm mb-5">
+                            Enter your details to get started
+                        </Text>
 
-                <AuthInput
-                    label="Email"
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="you@example.com"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    error={errors.email}
-                />
+                        <AuthInput
+                            label="Full Name"
+                            value={fullName}
+                            onChangeText={setFullName}
+                            placeholder="John Doe"
+                            error={errors.name}
+                        />
 
-                <AuthInput
-                    label="Password"
-                    value={password}
-                    onChangeText={setPassword}
-                    placeholder="Create a password"
-                    secureTextEntry
-                    error={errors.password}
-                />
+                        <AuthInput
+                            label="Email"
+                            value={email}
+                            onChangeText={setEmail}
+                            placeholder="you@example.com"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            error={errors.email}
+                        />
 
-                <AuthInput
-                    label="Confirm Password"
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    placeholder="Confirm your password"
-                    secureTextEntry
-                    error={errors.confirm}
-                />
+                        <AuthInput
+                            label="Password"
+                            value={password}
+                            onChangeText={setPassword}
+                            placeholder="Create a password"
+                            secureTextEntry
+                            showPasswordToggle
+                            error={errors.password}
+                        />
 
-                <AuthButton
-                    title="Sign Up"
-                    onPress={handleSignup}
-                    loading={loading}
-                    disabled={!fullName || !email || !password || !confirmPassword}
-                />
+                        <AuthInput
+                            label="Confirm Password"
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                            placeholder="Confirm your password"
+                            secureTextEntry
+                            showPasswordToggle
+                            error={errors.confirm}
+                        />
 
-                <View className="mt-8 flex-row justify-center">
-                    <Text className="text-gray-500 dark:text-gray-400">Already have an account? </Text>
-                    <Link href="/auth/login" className="font-bold text-black dark:text-white">
-                        Login
-                    </Link>
-                </View>
-            </View>
+                        <AuthButton
+                            title="Sign Up"
+                            onPress={handleSignup}
+                            loading={loading}
+                            disabled={!fullName || !email || !password || !confirmPassword}
+                        />
+
+                        <View className="mt-6 flex-row justify-center flex-wrap">
+                            <Text className="text-gray-500 dark:text-gray-400 text-sm">Already have an account? </Text>
+                            <Link href="/auth/login" asChild>
+                                <Pressable>
+                                    <Text style={{ color: linkColor }} className="font-bold text-sm">
+                                        Login
+                                    </Text>
+                                </Pressable>
+                            </Link>
+                        </View>
+                    </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, Text, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity, useColorScheme } from 'react-native';
 
 interface AuthButtonProps {
     title: string;
@@ -8,20 +8,28 @@ interface AuthButtonProps {
     disabled?: boolean;
 }
 
+const TINT_LIGHT = '#0a7ea4';
+
 export const AuthButton = ({ title, onPress, loading, disabled }: AuthButtonProps) => {
     const isDisabled = disabled || loading;
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === 'dark';
+
+    const backgroundColor = isDark ? '#fff' : TINT_LIGHT;
+    const textColor = isDark ? TINT_LIGHT : '#fff';
 
     return (
         <TouchableOpacity
             onPress={onPress}
             disabled={isDisabled}
-            className={`w-full py-4 rounded-lg items-center justify-center ${isDisabled ? 'bg-gray-400' : 'bg-black dark:bg-white'
-                }`}
+            activeOpacity={0.85}
+            style={{ backgroundColor }}
+            className={`w-full min-h-[48px] rounded-xl items-center justify-center ${isDisabled ? 'opacity-50' : ''}`}
         >
             {loading ? (
-                <ActivityIndicator color={isDisabled ? 'white' : 'black'} />
+                <ActivityIndicator color={textColor} />
             ) : (
-                <Text className={`font-bold text-lg ${isDisabled ? 'text-gray-100' : 'text-white dark:text-black'}`}>
+                <Text style={{ color: textColor }} className="font-bold text-base">
                     {title}
                 </Text>
             )}

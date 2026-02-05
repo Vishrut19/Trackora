@@ -4,10 +4,13 @@ import { getDeviceInfo } from '@/lib/device';
 import { supabase } from '@/lib/supabase';
 import { Link, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, SafeAreaView, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, SafeAreaView, Text, useColorScheme, View } from 'react-native';
+
+const TINT_LIGHT = '#0a7ea4';
 
 export default function LoginScreen() {
     const router = useRouter();
+    const colorScheme = useColorScheme();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -23,7 +26,6 @@ export default function LoginScreen() {
         setError('');
 
         try {
-            // First, authenticate user
             const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                 email: email.trim().toLowerCase(),
                 password,
@@ -31,10 +33,8 @@ export default function LoginScreen() {
 
             if (authError) throw authError;
 
-            // Get device info
             const deviceInfo = await getDeviceInfo();
 
-            // Check if device is registered for this user
             const { data: devices, error: deviceError } = await supabase
                 .from('user_devices')
                 .select('*')
@@ -45,12 +45,10 @@ export default function LoginScreen() {
             if (deviceError) throw deviceError;
 
             if (!devices || devices.length === 0) {
-                // Device not registered - sign out and show error
                 await supabase.auth.signOut();
                 throw new Error('This device is not authorized. Please contact admin or login from your registered device.');
             }
 
-            // Success - navigation handled by auth context
             router.replace('/');
         } catch (err: any) {
             Alert.alert('Login Failed', err.message);
@@ -60,49 +58,77 @@ export default function LoginScreen() {
         }
     };
 
+    const linkColor = colorScheme === 'dark' ? '#fff' : TINT_LIGHT;
+
     return (
         <SafeAreaView className="flex-1 bg-white dark:bg-black">
-            <View className="flex-1 px-6 justify-center">
-                <Text className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">
-                    Welcome Back
+            <ScrollView
+                className="flex-1"
+                contentContainerStyle={{
+                    flexGrow: 1,
+                    justifyContent: 'center',
+                    paddingHorizontal: 24,
+                    paddingVertical: 32,
+                }}
+                keyboardShouldPersistTaps="handled"
+            >
+                <Text className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                    WorkFlow
                 </Text>
-                <Text className="text-gray-500 mb-8 dark:text-gray-400">
+                <Text className="text-gray-500 dark:text-gray-400 text-sm mb-6">
                     Sign in to continue tracking your attendance
                 </Text>
 
-                <AuthInput
-                    label="Email"
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="you@example.com"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    error={error && !password ? error : ''}
-                />
+                <View
+                    className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-6 w-full self-center"
+                    style={{ maxWidth: 400, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 }}
+                >
+                    <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                        Welcome Back
+                    </Text>
+                    <Text className="text-gray-500 dark:text-gray-400 text-sm mb-5">
+                        Enter your credentials to continue
+                    </Text>
 
-                <AuthInput
-                    label="Password"
-                    value={password}
-                    onChangeText={setPassword}
-                    placeholder="Enter your password"
-                    secureTextEntry
-                    error={error && password ? error : ''}
-                />
+                    <AuthInput
+                        label="Email"
+                        value={email}
+                        onChangeText={setEmail}
+                        placeholder="you@example.com"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        error={error && !password ? error : ''}
+                    />
 
-                <AuthButton
-                    title="Login"
-                    onPress={handleLogin}
-                    loading={loading}
-                    disabled={!email || !password}
-                />
+                    <AuthInput
+                        label="Password"
+                        value={password}
+                        onChangeText={setPassword}
+                        placeholder="Enter your password"
+                        secureTextEntry
+                        showPasswordToggle
+                        error={error && password ? error : ''}
+                    />
 
-                <View className="mt-8 flex-row justify-center">
-                    <Text className="text-gray-500 dark:text-gray-400">Don't have an account? </Text>
-                    <Link href="/auth/signup" className="font-bold text-black dark:text-white">
-                        Sign Up
-                    </Link>
+                    <AuthButton
+                        title="Login"
+                        onPress={handleLogin}
+                        loading={loading}
+                        disabled={!email || !password}
+                    />
+
+                    <View className="mt-6 flex-row justify-center flex-wrap">
+                        <Text className="text-gray-500 dark:text-gray-400 text-sm">Don't have an account? </Text>
+                        <Link href="/auth/signup" asChild>
+                            <Pressable>
+                                <Text style={{ color: linkColor }} className="font-bold text-sm">
+                                    Sign Up
+                                </Text>
+                            </Pressable>
+                        </Link>
+                    </View>
                 </View>
-            </View>
+            </ScrollView>
         </SafeAreaView>
     );
 }
