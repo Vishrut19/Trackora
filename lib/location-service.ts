@@ -106,7 +106,7 @@ export async function startLocationTracking(): Promise<boolean> {
       timeInterval: 2 * 60 * 1000, // 2 minutes in milliseconds
       distanceInterval: 0, // Track even if user hasn't moved (for stationary workers)
       foregroundService: {
-        notificationTitle: 'Trackora - Location Tracking',
+        notificationTitle: 'WorkFlow - Location Tracking',
         notificationBody: 'Tracking your location during work hours',
         notificationColor: '#2563EB', // Blue color
       },

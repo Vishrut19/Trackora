@@ -253,7 +253,7 @@ export default function ManagerDashboard() {
             {/* Custom Header */}
             <View className="flex-row items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
                 <View>
-                    <Text className="text-2xl font-bold text-gray-900 dark:text-white">Trackora</Text>
+                    <Text className="text-2xl font-bold text-gray-900 dark:text-white">WorkFlow</Text>
                     <Text className="text-xs text-blue-600 font-bold uppercase tracking-widest">Manager Dashboard</Text>
                 </View>
                 <TouchableOpacity

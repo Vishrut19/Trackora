@@ -56,27 +56,31 @@ export default function SignupScreen() {
         try {
             // Clean email
             const cleanEmail = email.trim().toLowerCase();
-            
+
+            // Define admin emails that should get the 'admin' role automatically
+            // You can add your email here to become an admin upon signup
+            const ADMIN_EMAILS = [
+                'admin@workflow.com',
+                'vishrutagarwalla@gmail.com', // Adding your email as an example
+            ];
+
+            const isSystemAdmin = ADMIN_EMAILS.includes(cleanEmail);
+
             // Validate email format more strictly
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(cleanEmail)) {
                 throw new Error('Please enter a valid email address.');
             }
-            
+
             // Create user account
-            // Note: If email confirmation is enabled in Supabase, you may need to:
-            // 1. Disable it in Supabase Dashboard > Authentication > Settings
-            // 2. Or configure email templates and redirect URLs
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: cleanEmail,
                 password,
                 options: {
                     data: {
                         full_name: fullName.trim(),
-                        role: 'staff',
+                        role: isSystemAdmin ? 'admin' : 'staff',
                     },
-                    // Disable email redirect if email confirmation is causing issues
-                    // emailRedirectTo: undefined,
                 },
             });
 
@@ -87,12 +91,12 @@ export default function SignupScreen() {
                     status: authError.status,
                     name: authError.name,
                 });
-                
+
                 // Provide more user-friendly error messages
                 let errorMessage = authError.message;
-                
+
                 // Handle common Supabase auth errors
-                if (authError.message.includes('already registered') || 
+                if (authError.message.includes('already registered') ||
                     authError.message.includes('already exists') ||
                     authError.message.includes('User already registered') ||
                     authError.message.includes('already been registered')) {
@@ -108,7 +112,7 @@ export default function SignupScreen() {
                 } else if (authError.message.includes('Email rate limit')) {
                     errorMessage = 'Too many signup attempts. Please wait a moment and try again.';
                 }
-                
+
                 throw new Error(errorMessage);
             }
 
@@ -126,7 +130,7 @@ export default function SignupScreen() {
             // Register device for this user (retry up to 3 times if profile doesn't exist yet)
             let deviceInserted = false;
             let retries = 3;
-            
+
             while (!deviceInserted && retries > 0) {
                 const { error: deviceError } = await supabase
                     .from('user_devices')
@@ -184,7 +188,7 @@ export default function SignupScreen() {
                     Create Account
                 </Text>
                 <Text className="text-gray-500 mb-8 dark:text-gray-400">
-                    Join Trackora to start tracking your work
+                    Join WorkFlow to start tracking your work
                 </Text>
 
                 <AuthInput

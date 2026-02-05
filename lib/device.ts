@@ -13,7 +13,7 @@ export interface DeviceInfo {
   modelName: string | null;
 }
 
-const DEVICE_ID_KEY = 'trackora_device_id';
+const DEVICE_ID_KEY = 'workflow_device_id';
 
 /**
  * Get unique device identifier

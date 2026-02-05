@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, View } from 'react-native';
 import '../global.css';
 
-const HAS_VISITED_KEY = 'trackora_has_visited';
+const HAS_VISITED_KEY = 'workflow_has_visited';
 
 function RootLayoutNav() {
   const { session, loading } = useAuth();

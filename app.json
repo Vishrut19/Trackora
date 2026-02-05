@@ -1,24 +1,24 @@
 {
   "expo": {
-    "name": "Trackora",
-    "slug": "Trackora",
+    "name": "WorkFlow",
+    "slug": "WorkFlow",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "trackora",
+    "scheme": "workflow",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vishrut19.Trackora",
+      "bundleIdentifier": "com.vishrut19.WorkFlow",
       "useFrameworks": "dynamic"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundImage": "./assets/images/icon.png",
+        "monochromeImage": "./assets/images/icon.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -29,11 +29,11 @@
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_LOCATION"
       ],
-      "package": "com.vishrut19.Trackora"
+      "package": "com.vishrut19.WorkFlow"
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png",
+      "favicon": "./assets/images/icon.png",
       "bundler": "metro"
     },
     "plugins": [
@@ -41,7 +41,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
@@ -54,9 +54,9 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Trackora to use your location to verify attendance check-ins and check-outs.",
-          "locationAlwaysPermission": "Allow Trackora to track your location in the background during work hours (after check-in).",
-          "locationWhenInUsePermission": "Allow Trackora to use your location to verify attendance check-ins and check-outs.",
+          "locationAlwaysAndWhenInUsePermission": "Allow WorkFlow to use your location to verify attendance check-ins and check-outs.",
+          "locationAlwaysPermission": "Allow WorkFlow to track your location in the background during work hours (after check-in).",
+          "locationWhenInUsePermission": "Allow WorkFlow to use your location to verify attendance check-ins and check-outs.",
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }
