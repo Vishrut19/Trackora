@@ -29,7 +29,8 @@
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_LOCATION"
       ],
-      "package": "com.vishrut19.WorkFlow"
+      "package": "com.vishrut19.WorkFlow",
+      "versionCode": 1
     },
     "web": {
       "output": "static",
@@ -64,6 +65,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "010f47d1-c827-4d79-bb53-4a190485af2c"
+      }
     }
   }
 }
