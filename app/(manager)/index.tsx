@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import * as Location from 'expo-location';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { CheckCircle2, Clock, History as HistoryIcon, LogOut, Map as MapIcon, Users } from 'lucide-react-native';
+import { CheckCircle2, ChevronRight, Clock, History as HistoryIcon, LogOut, Map as MapIcon, MapPin, Users } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,6 +28,10 @@ export default function ManagerDashboard() {
     });
     const [loadingStats, setLoadingStats] = useState(true);
 
+    // Team Members List
+    const [teamMembers, setTeamMembers] = useState<any[]>([]);
+    const [loadingMembers, setLoadingMembers] = useState(true);
+
     // Timer State
     const [elapsedTime, setElapsedTime] = useState<string>('00:00:00');
     const timerRef = useRef<any>(null);
@@ -41,6 +45,7 @@ export default function ManagerDashboard() {
                 loadProfile();
                 checkAttendance();
                 loadTeamStats();
+                loadTeamMembers();
             }
         }, [session, loading])
     );
@@ -134,7 +139,8 @@ export default function ManagerDashboard() {
                 .select('user_id')
                 .in('team_id', teamIds);
 
-            const userIds = members?.map(m => m.user_id) || [];
+            // Deduplicate user_ids (same person can be in multiple teams)
+            const userIds = [...new Set(members?.map(m => m.user_id) || [])];
 
             if (userIds.length === 0) {
                 setStats({ totalMembers: 0, currentlyCheckedIn: 0, activeTracking: 0 });
@@ -159,6 +165,88 @@ export default function ManagerDashboard() {
             console.error('Error loading stats:', error);
         } finally {
             setLoadingStats(false);
+        }
+    };
+
+    const loadTeamMembers = async () => {
+        if (!session?.user) return;
+        setLoadingMembers(true);
+        try {
+            const today = new Date().toISOString().split('T')[0];
+
+            // 1. Get managed teams
+            const { data: managedTeams } = await supabase
+                .from('teams')
+                .select('id')
+                .eq('manager_id', session.user.id);
+
+            const teamIds = managedTeams?.map(t => t.id) || [];
+            if (teamIds.length === 0) {
+                setTeamMembers([]);
+                return;
+            }
+
+            // 2. Get members with profiles
+            const { data: members } = await supabase
+                .from('team_members')
+                .select('user_id, profiles:user_id(full_name, email, role)')
+                .in('team_id', teamIds);
+
+            if (!members || members.length === 0) {
+                setTeamMembers([]);
+                return;
+            }
+
+            // Deduplicate members by user_id (same person can be in multiple teams)
+            const uniqueMembers = new Map<string, any>();
+            members.forEach(m => {
+                if (!uniqueMembers.has(m.user_id)) {
+                    uniqueMembers.set(m.user_id, m);
+                }
+            });
+            const dedupedMembers = Array.from(uniqueMembers.values());
+            const userIds = dedupedMembers.map(m => m.user_id);
+
+            // 3. Get today's attendance for these members
+            const { data: attendanceData } = await supabase
+                .from('attendance')
+                .select('user_id, check_in_time, check_out_time')
+                .in('user_id', userIds)
+                .eq('attendance_date', today);
+
+            // 4. Build member list with status
+            const attendanceMap = new Map<string, any>();
+            attendanceData?.forEach(a => {
+                attendanceMap.set(a.user_id, a);
+            });
+
+            const memberList = dedupedMembers.map(m => {
+                const profile = m.profiles as any;
+                const att = attendanceMap.get(m.user_id);
+                let status: 'checked-in' | 'checked-out' | 'absent' = 'absent';
+                if (att) {
+                    status = att.check_out_time ? 'checked-out' : 'checked-in';
+                }
+                return {
+                    user_id: m.user_id,
+                    full_name: profile?.full_name || 'Unknown',
+                    email: profile?.email || '',
+                    status,
+                    check_in_time: att?.check_in_time || null,
+                };
+            });
+
+            // Sort: checked-in first, then checked-out, then absent
+            memberList.sort((a, b) => {
+                const order = { 'checked-in': 0, 'checked-out': 1, 'absent': 2 };
+                return order[a.status] - order[b.status];
+            });
+
+            setTeamMembers(memberList);
+        } catch (error) {
+            console.error('Error loading team members:', error);
+        } finally {
+            setLoadingMembers(false);
         }
     };
 
@@ -273,7 +361,7 @@ export default function ManagerDashboard() {
         }
     };
 
-    if (loading || loadingProfile || loadingAttendance || loadingStats) {
+    if (loading || loadingProfile || loadingAttendance || loadingStats || loadingMembers) {
         return (
             <View className="flex-1 items-center justify-center bg-white dark:bg-black">
                 <ActivityIndicator size="large" />
@@ -388,6 +476,99 @@ export default function ManagerDashboard() {
                                 </Text>
                             </View>
                             <HistoryIcon size={20} color="#9CA3AF" />
+                        </View>
+                    )}
+                </View>
+
+                {/* Team Members Table */}
+                <View className="mb-8">
+                    <View className="flex-row items-center justify-between mb-4">
+                        <Text className="text-lg font-bold text-gray-900 dark:text-white">Team Members</Text>
+                        <Text className="text-xs text-gray-400 font-bold uppercase tracking-wider">
+                            {teamMembers.length} Members
+                        </Text>
+                    </View>
+
+                    {teamMembers.length === 0 ? (
+                        <View className="bg-gray-50 dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 items-center">
+                            <Users size={32} color="#D1D5DB" />
+                            <Text className="text-gray-400 mt-2">No team members found</Text>
+                        </View>
+                    ) : (
+                        <View className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+                            {teamMembers.map((member, index) => (
+                                <View
+                                    key={member.user_id}
+                                    className={`flex-row items-center p-4 ${index !== teamMembers.length - 1 ? 'border-b border-gray-50 dark:border-gray-800' : ''}`}
+                                >
+                                    {/* Avatar */}
+                                    <View className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${
+                                        member.status === 'checked-in'
+                                            ? 'bg-green-100 dark:bg-green-900/30'
+                                            : member.status === 'checked-out'
+                                            ? 'bg-gray-100 dark:bg-gray-800'
+                                            : 'bg-red-50 dark:bg-red-900/20'
+                                    }`}>
+                                        <Text className={`text-base font-bold ${
+                                            member.status === 'checked-in'
+                                                ? 'text-green-600'
+                                                : member.status === 'checked-out'
+                                                ? 'text-gray-500'
+                                                : 'text-red-400'
+                                        }`}>
+                                            {member.full_name?.charAt(0)?.toUpperCase() || '?'}
+                                        </Text>
+                                    </View>
+
+                                    {/* Name & Status */}
+                                    <View className="flex-1 mr-3">
+                                        <Text className="text-sm font-semibold text-gray-900 dark:text-white">
+                                            {member.full_name}
+                                        </Text>
+                                        <View className="flex-row items-center mt-1">
+                                            <View className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                                                member.status === 'checked-in'
+                                                    ? 'bg-green-500'
+                                                    : member.status === 'checked-out'
+                                                    ? 'bg-gray-400'
+                                                    : 'bg-red-400'
+                                            }`} />
+                                            <Text className={`text-xs font-medium ${
+                                                member.status === 'checked-in'
+                                                    ? 'text-green-600 dark:text-green-400'
+                                                    : member.status === 'checked-out'
+                                                    ? 'text-gray-400'
+                                                    : 'text-red-400'
+                                            }`}>
+                                                {member.status === 'checked-in'
+                                                    ? `Active since ${new Date(member.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                                    : member.status === 'checked-out'
+                                                    ? 'Checked out'
+                                                    : 'Absent today'}
+                                            </Text>
+                                        </View>
+                                    </View>
+
+                                    {/* Location Button - only for checked-in members */}
+                                    {member.status === 'checked-in' ? (
+                                        <TouchableOpacity
+                                            onPress={() => router.push({ pathname: '/(manager)/map', params: { userId: member.user_id, userName: member.full_name } })}
+                                            className="flex-row items-center bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-xl border border-blue-100 dark:border-blue-800"
+                                        >
+                                            <MapPin size={14} color="#2563EB" />
+                                            <Text className="text-xs font-bold text-blue-600 dark:text-blue-400 ml-1.5">Track</Text>
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <TouchableOpacity
+                                            onPress={() => router.push(`/(manager)/member/${member.user_id}`)}
+                                            className="flex-row items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-xl"
+                                        >
+                                            <Text className="text-xs font-medium text-gray-400 mr-1">Profile</Text>
+                                            <ChevronRight size={12} color="#9CA3AF" />
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            ))}
                         </View>
                     )}
                 </View>
