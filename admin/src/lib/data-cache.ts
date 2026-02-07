@@ -55,7 +55,7 @@ export function setCached<T>(key: string, value: T, ttlMs = MAX_AGE_MS) {
 export const CACHE_KEYS = {
   DASHBOARD_STATS: 'dashboard_stats',
   STAFF_LIST: 'staff_list',
-  ATTENDANCE: (date: string) => `attendance_${date}`,
+  ATTENDANCE: (from: string, to: string) => `attendance_${from}_${to}`,
   DEVICES: 'devices_list',
   REPORTS: 'reports_stats',
   PROFILE: (id: string) => `profile_${id}`,

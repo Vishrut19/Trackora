@@ -3,20 +3,29 @@
 import DashboardLayout from '@/components/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader } from '@/components/ui/loader';
 import { getCached, setCached, CACHE_KEYS } from '@/lib/data-cache';
+import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
+import type { DateRange } from 'react-day-picker';
 import { Calendar as CalendarIcon, Download, History, Search } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export default function AttendanceRecords() {
     const defaultDate = format(new Date(), 'yyyy-MM-dd');
-    const [dateFilter, setDateFilter] = useState(defaultDate);
-    const cacheKey = CACHE_KEYS.ATTENDANCE(dateFilter);
+    const [dateFrom, setDateFrom] = useState(defaultDate);
+    const [dateTo, setDateTo] = useState(defaultDate);
+    const cacheKey = CACHE_KEYS.ATTENDANCE(dateFrom, dateTo);
     const [records, setRecords] = useState<any[]>(() => getCached<any[]>(cacheKey) ?? []);
     const [loading, setLoading] = useState(!getCached<any[]>(cacheKey));
     const [searchQuery, setSearchQuery] = useState('');
@@ -28,7 +37,8 @@ export default function AttendanceRecords() {
             const { data, error } = await supabase
                 .from('attendance')
                 .select('*, profiles:user_id (full_name, email)')
-                .eq('attendance_date', dateFilter)
+                .gte('attendance_date', dateFrom)
+                .lte('attendance_date', dateTo)
                 .order('check_in_time', { ascending: false });
             if (error) throw error;
             const list = data ?? [];
@@ -39,7 +49,7 @@ export default function AttendanceRecords() {
         } finally {
             setLoading(false);
         }
-    }, [dateFilter, cacheKey]);
+    }, [dateFrom, dateTo, cacheKey]);
 
     useEffect(() => {
         const cached = getCached<any[]>(cacheKey);
@@ -91,7 +101,7 @@ export default function AttendanceRecords() {
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
-        link.setAttribute('download', `attendance_${dateFilter}.csv`);
+        link.setAttribute('download', `attendance_${dateFrom}_to_${dateTo}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
@@ -111,15 +121,43 @@ export default function AttendanceRecords() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">
-                    <div className="relative w-full sm:w-auto">
-                        <CalendarIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            type="date"
-                            value={dateFilter}
-                            onChange={(e) => setDateFilter(e.target.value)}
-                            className="pl-9 bg-input border-border text-foreground focus-visible:ring-ring shadow-sm"
-                        />
-                    </div>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                data-empty={!dateFrom && !dateTo}
+                                className={cn(
+                                    'w-[280px] justify-start text-left font-normal border border-input bg-background shadow-sm',
+                                    !dateFrom && 'text-muted-foreground'
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {dateFrom ? (
+                                    dateTo && dateTo !== dateFrom
+                                        ? `${format(new Date(dateFrom), 'MMM d, yyyy')} - ${format(new Date(dateTo), 'MMM d, yyyy')}`
+                                        : format(new Date(dateFrom), 'MMM d, yyyy')
+                                ) : (
+                                    <span>Pick a date range</span>
+                                )}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                mode="range"
+                                defaultMonth={dateFrom ? new Date(dateFrom) : new Date()}
+                                selected={{
+                                    from: dateFrom ? new Date(dateFrom) : undefined,
+                                    to: dateTo ? new Date(dateTo) : undefined,
+                                }}
+                                onSelect={(range: DateRange | undefined) => {
+                                    if (!range?.from) return;
+                                    setDateFrom(format(range.from, 'yyyy-MM-dd'));
+                                    setDateTo(range.to ? format(range.to, 'yyyy-MM-dd') : format(range.from, 'yyyy-MM-dd'));
+                                }}
+                                numberOfMonths={2}
+                            />
+                        </PopoverContent>
+                    </Popover>
 
                     <div className="relative w-full sm:w-auto">
                         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -220,8 +258,8 @@ export default function AttendanceRecords() {
                                                     <History size={24} className="text-muted-foreground" />
                                                 </div>
                                                 <div>
-                                                    <p className="font-medium text-foreground">No activity for this date</p>
-                                                    <p className="mt-0.5 text-sm text-muted-foreground">Select another date or wait for check-ins</p>
+                                                    <p className="font-medium text-foreground">No activity for this date range</p>
+                                                    <p className="mt-0.5 text-sm text-muted-foreground">Select another range or wait for check-ins</p>
                                                 </div>
                                             </div>
                                         </TableCell>
