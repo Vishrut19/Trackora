@@ -30,12 +30,7 @@
         "android.permission.FOREGROUND_SERVICE_LOCATION"
       ],
       "package": "com.vishrut19.WorkFlow",
-      "versionCode": 2,
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyBvq48Kf6QV_g8YHBW2pi7izMww4eW9V78"
-        }
-      }
+      "versionCode": 2
     },
     "web": {
       "output": "static",

@@ -1,8 +1,10 @@
-# Trackora - Staff Tracking App
+# WorkFlow - Staff Tracking App
 
 ## Project Overview
 
-Trackora is a staff tracking and attendance management app built for internal company use. The app helps track staff live locations and manage attendance, replacing expensive market solutions.
+WorkFlow is a staff tracking and attendance management app built for internal company use. The app helps track staff live locations and manage attendance, replacing expensive market solutions.
+
+- App name: **WorkFlow** (formerly Trackora)
 
 ## Key Requirements
 
