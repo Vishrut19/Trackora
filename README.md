@@ -1,50 +1,108 @@
-# Welcome to your Expo app 👋
+# WorkFlow
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**WorkFlow** is a modern **internal workforce management & live location tracking platform** designed for companies with field staff and non-technical employees. It helps organizations **track attendance, monitor real-time employee location during working hours, and manage daily operations** through a simple, secure mobile app.
 
-## Get started
+This project is built as a **production-ready internal tool**, following Google Play policies for background location, foreground services, and privacy compliance.
 
-1. Install dependencies
+## 🚀 What Problem WorkFlow Solves
 
-   ```bash
-   npm install
-   ```
+Many organizations with field employees struggle with:
+- Fake or inaccurate attendance
+- No visibility into on-ground staff movement
+- Manual reporting and follow-ups
+- Complex tools that non-technical staff can’t use
 
-2. Start the app
+**WorkFlow** solves this by providing:
+- GPS-verified attendance
+- User-initiated real-time location tracking
+- Clear audit trails for management
+- A simple mobile-first experience for staff
 
-   ```bash
-   npx expo start
-   ```
+## ✨ Key Features
 
-In the output, you'll find options to open the app in a
+### 📍 Live Location Tracking
+- Real-time GPS tracking during **working hours only**
+- User-initiated tracking with explicit consent
+- Foreground service with visible notification (Play Store compliant)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### ⏱ Attendance Management
+- One-tap start / end duty
+- Location-verified check-in and check-out
+- Prevents proxy or fake attendance
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### 🔐 Secure Authentication
+- Mobile number + OTP login
+- Designed for non-technical users
 
-## Get a fresh project
+### 📱 Employee-Friendly Mobile App
+- Clean and minimal UI
+- Works reliably in background
+- Optimized for low learning curve
 
-When you're ready, run:
+### 🛡 Privacy & Compliance
+- Background location used only for business purposes
+- Tracking limited to work sessions
+- Clear in-app disclosure and privacy policy
+- Fully Google Play policy compliant
 
-```bash
-npm run reset-project
-```
+## 🏗 Tech Stack
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+- **Frontend:** React Native / Expo
+- **Backend:** Supabase (Authentication + Database)
+- **Location Services:** Android Location APIs
+- **Deployment:** Google Play Console (Closed Testing → Unlisted Production)
 
-## Learn more
 
-To learn more about developing your project with Expo, look at the following resources:
+## 📦 Use Cases
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+WorkFlow is ideal for:
+- Field sales teams
+- Service & maintenance staff
+- Construction & on-site workers
+- Logistics and delivery teams
+- Internal workforce tracking (non-public apps)
 
-## Join the community
 
-Join our community of developers creating universal apps.
+## 🔄 App Distribution Strategy
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- Distributed as an **Unlisted app on Google Play**
+- Easy installation via a single Play Store link
+- Automatic updates for all users
+- Not visible to the public
+
+Perfect for **internal company usage**.
+
+
+## 🔍 Project Highlights (For Clients)
+
+- Built with **real-world Google Play policy constraints**
+- Correct implementation of **background location + foreground services**
+- Designed for **non-technical, labor-class users**
+- Scalable from **10 to 500+ employees**
+- Production-ready architecture
+
+
+## 👨‍💻 About the Developer
+
+This project is developed by a **Senior Full-Stack Developer** with experience building:
+- Internal enterprise tools
+- Workforce & employee tracking systems
+- Secure mobile applications
+- Scalable backend architectures
+
+If you are looking for:
+- A **custom employee tracking solution**
+- A **private internal app** for your organization
+- Or a developer who understands **both technology and compliance**
+
+**WorkFlow serves as a strong reference implementation.**
+
+
+## 📩 Interested in a Similar Solution?
+
+If you want a **custom version of WorkFlow** for your business, or a similar internal tool:
+
+👉 Feel free to reach out via **Upwork** or GitHub.
+
+**⚠️ Note:**  
+This repository represents an internal workforce management solution. It is not intended for public consumer use.
