@@ -102,7 +102,7 @@ If you are looking for:
 
 If you want a **custom version of WorkFlow** for your business, or a similar internal tool:
 
-👉 Feel free to reach out via **Upwork** or GitHub.
+👉 Feel free to reach out via Email - **vishrutagarwalla19@gmail.com** or GitHub.
 
 **⚠️ Note:**  
 This repository represents an internal workforce management solution. It is not intended for public consumer use.
