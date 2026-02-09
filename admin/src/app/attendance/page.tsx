@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Loader } from "@/components/ui/loader";
 import { getCached, setCached, CACHE_KEYS } from "@/lib/data-cache";
-import { cn } from "@/lib/utils";
+import { cn, formatDisplayDate } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
@@ -181,9 +181,9 @@ export default function AttendanceRecords() {
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {dateFrom ? (
                   dateTo && dateTo !== dateFrom ? (
-                    `${format(new Date(dateFrom), "MMM d, yyyy")} - ${format(new Date(dateTo), "MMM d, yyyy")}`
+                    `${formatDisplayDate(dateFrom)} - ${formatDisplayDate(dateTo)}`
                   ) : (
-                    format(new Date(dateFrom), "MMM d, yyyy")
+                    formatDisplayDate(dateFrom)
                   )
                 ) : (
                   <span>Pick a date range</span>

@@ -7,9 +7,9 @@ const CRON_SECRET = process.env.CRON_SECRET;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_EMAIL = process.env.FROM_EMAIL || 'reports@resend.dev';
 
-/** Get today's date string in IST (YYYY-MM-DD). */
+/** Get today's date string in IST (YYYY-MM-DD) for DB queries. */
 function todayIST(): string {
-  return format(new Date(), 'yyyy-MM-dd', { timeZone: 'Asia/Kolkata' });
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 }
 
 /** Check if today (IST) is the last day of the month. */

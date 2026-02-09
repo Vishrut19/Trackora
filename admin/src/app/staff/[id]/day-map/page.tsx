@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Loader } from '@/components/ui/loader';
 import { supabase } from '@/lib/supabase';
 import { APIProvider, Map, Marker, useMap } from '@vis.gl/react-google-maps';
+import { formatDisplayDate } from '@/lib/utils';
 import { format, subDays } from 'date-fns';
 import { ArrowLeft, MapPin } from 'lucide-react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -210,7 +211,7 @@ export default function StaffDayMapPage() {
       ? 'Today'
       : selectedDate === format(subDays(new Date(), 1), 'yyyy-MM-dd')
         ? 'Yesterday'
-        : format(new Date(selectedDate + 'T12:00:00'), 'EEE, MMM d, yyyy');
+        : formatDisplayDate(selectedDate);
 
   if (loading && !member) {
     return (

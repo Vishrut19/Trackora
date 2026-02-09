@@ -22,8 +22,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getCached, setCached, CACHE_KEYS } from "@/lib/data-cache";
+import { formatDisplayDate } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
-import { format } from "date-fns";
 import {
   CheckCircle,
   CheckCircle2,
@@ -187,7 +187,7 @@ export default function DeviceManagement() {
                       <div className="flex items-center gap-1.5 text-muted-foreground justify-center">
                         <Clock size={12} className="shrink-0" />
                         <span className="text-sm font-medium tabular-nums">
-                          {format(new Date(device.created_at), "MMM d, yyyy")}
+                          {formatDisplayDate(device.created_at)}
                         </span>
                       </div>
                     </TableCell>

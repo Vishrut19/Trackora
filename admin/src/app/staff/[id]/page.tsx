@@ -13,7 +13,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader } from '@/components/ui/loader';
 import { supabase } from '@/lib/supabase';
-import { cn } from '@/lib/utils';
+import { cn, formatDisplayDate } from '@/lib/utils';
 import { format, subDays } from 'date-fns';
 import {
   ArrowLeft,
@@ -37,7 +37,7 @@ function formatDateLabel(dateStr: string): string {
   if (dateStr === today) return 'Today';
   const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
   if (dateStr === yesterday) return 'Yesterday';
-  return format(new Date(dateStr + 'T12:00:00'), 'EEE, MMM d, yyyy');
+  return formatDisplayDate(dateStr);
 }
 
 function getMinMaxDates(): { min: string; max: string } {
@@ -288,7 +288,7 @@ export default function StaffDetailPage() {
                 <div className="rounded-xl border border-border bg-card overflow-hidden">
                   <div className="flex justify-between items-center p-4 border-b border-border">
                     <span className="text-sm font-medium text-muted-foreground">
-                      {format(new Date(attendance[0].attendance_date), 'EEE, MMM d')}
+                      {formatDisplayDate(attendance[0].attendance_date)}
                     </span>
                     <Badge
                       className={
