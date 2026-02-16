@@ -29,10 +29,9 @@ interface LiveMapProps {
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=14&addressdetails=1`,
-      { headers: { "Accept-Language": "en" } },
+      `/api/geocode/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`,
     );
-    if (!res.ok) throw new Error(`Nominatim HTTP ${res.status}`);
+    if (!res.ok) throw new Error(`Geocode HTTP ${res.status}`);
     const data = await res.json();
 
     const addr = data.address;
