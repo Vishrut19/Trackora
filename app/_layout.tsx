@@ -90,53 +90,96 @@ function RootLayoutNav() {
           const deviceInfo = await getDeviceInfo();
           if (cancelled) return;
 
-          // Retry device check a few times (device might still be registering)
-          let devices = null;
-          let retries = 3;
+          // Check if this is an admin device first (query by device_uuid only)
+          console.log('🔍 _layout: Checking admin device for UUID:', deviceInfo.deviceId);
+          const { data: adminDevices, error: adminDeviceError } = await supabase
+            .from('user_devices')
+            .select('*')
+            .eq('device_uuid', deviceInfo.deviceId)
+            .eq('is_admin_device', true)
+            .eq('is_active', true)
+            .limit(1);
 
-          while (retries > 0 && !cancelled) {
-            const { data, error } = await supabase
-              .from('user_devices')
-              .select('*')
-              .eq('user_id', session.user.id)
-              .eq('device_uuid', deviceInfo.deviceId)
-              .eq('is_active', true);
+          console.log('🔍 _layout: Admin device query result:', { adminDevices, adminDeviceError });
 
-            if (error) {
-              console.error('Error verifying device:', error);
-              break;
-            }
-
-            if (data && data.length > 0) {
-              devices = data;
-              break;
-            }
-
-            // No device found - wait and retry
-            console.log('⏳ Device not found, retrying...');
-            retries--;
-            if (retries > 0) {
-              await new Promise(resolve => setTimeout(resolve, 500));
-            }
+          if (adminDeviceError) {
+            console.error('Error checking admin device:', adminDeviceError);
           }
 
-          if (cancelled) return;
+          const isAdminDevice = adminDevices && adminDevices.length > 0;
+          console.log('🔍 _layout: Is admin device:', isAdminDevice);
 
-          const isDeviceValid = devices && devices.length > 0;
+          if (isAdminDevice) {
+            console.log('✅ Admin device detected - bypassing device binding check');
+            // Admin device can access any account, skip normal device verification
+          } else {
+            // Retry device check a few times (device might still be registering)
+            let devices = null;
+            let retries = 3;
 
-          if (!isDeviceValid) {
-            console.log('🚫 Device not authorized after retries. Signing out.');
-            await supabase.auth.signOut();
-            if (!cancelled) {
-              Alert.alert('Unauthorized Device', 'This device is not registered for your account. Please contact your administrator.');
+            while (retries > 0 && !cancelled) {
+              const { data, error } = await supabase
+                .from('user_devices')
+                .select('*')
+                .eq('user_id', session.user.id)
+                .eq('device_uuid', deviceInfo.deviceId)
+                .eq('is_active', true);
+
+              if (error) {
+                console.error('Error verifying device:', error);
+                break;
+              }
+
+              if (data && data.length > 0) {
+                devices = data;
+                break;
+              }
+
+              // No device found - wait and retry
+              console.log('⏳ Device not found, retrying...');
+              retries--;
+              if (retries > 0) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+              }
             }
-            return;
-          }
 
-          console.log('✅ Device verified successfully');
+            if (cancelled) return;
+
+            const isDeviceValid = devices && devices.length > 0;
+
+            if (!isDeviceValid) {
+              // Auto-register device for existing users
+              console.log('📝 Auto-registering device for session user:', session.user.id);
+              const { error: insertError } = await supabase
+                .from('user_devices')
+                .insert({
+                  user_id: session.user.id,
+                  device_uuid: deviceInfo.deviceId,
+                  model: deviceInfo.modelName || deviceInfo.deviceName || null,
+                  os_version: deviceInfo.platform || null,
+                  is_active: true,
+                  is_admin_device: false,
+                });
+              
+              if (insertError) {
+                console.error('❌ Device auto-registration failed:', insertError);
+                console.log('🚫 Device not authorized after retries. Signing out.');
+                await supabase.auth.signOut();
+                if (!cancelled) {
+                  Alert.alert('Unauthorized Device', 'This device is not registered for your account. Please contact your administrator.');
+                }
+                return;
+              }
+              console.log('✅ Device auto-registered and verified successfully');
+            } else {
+              console.log('✅ Device verified successfully');
+            }
+          }
 
           // After device verification, check for role-based redirection
-          if (role === 'manager' && segments[0] !== '(manager)') {
+          // Allow managers to access history and profile pages
+          const allowedNonManagerRoutes = ['history', 'profile'];
+          if (role === 'manager' && segments[0] !== '(manager)' && !allowedNonManagerRoutes.includes(segments[0])) {
             console.log('➡️ Redirecting to MANAGER dashboard');
             router.replace('/(manager)');
           } else if (role === 'staff' && segments[0] === '(manager)') {

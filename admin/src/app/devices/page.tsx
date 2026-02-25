@@ -21,13 +21,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getCached, setCached, CACHE_KEYS } from "@/lib/data-cache";
-import { formatDisplayDate } from "@/lib/utils";
+import { CACHE_KEYS, getCached, setCached } from "@/lib/data-cache";
 import { supabase } from "@/lib/supabase";
+import { formatDisplayDate } from "@/lib/utils";
 import {
   CheckCircle,
   CheckCircle2,
   Clock,
+  Crown,
   Monitor,
   MoreVertical,
   ShieldAlert,
@@ -87,18 +88,40 @@ export default function DeviceManagement() {
     try {
       const { error } = await supabase
         .from("user_devices")
-        .update({ is_authorized: !currentStatus })
+        .update({ is_active: !currentStatus })
         .eq("id", deviceId);
 
       if (error) throw error;
       setDevices((prev) =>
         prev.map((d) =>
-          d.id === deviceId ? { ...d, is_authorized: !currentStatus } : d,
+          d.id === deviceId ? { ...d, is_active: !currentStatus } : d,
         ),
       );
     } catch (err: any) {
       console.error("Error updating device:", err);
       alert(err?.message || "Failed to update device. You may need admin access.");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function toggleAdminDevice(deviceId: string, currentStatus: boolean) {
+    setActionLoading(deviceId);
+    try {
+      const { error } = await supabase
+        .from("user_devices")
+        .update({ is_admin_device: !currentStatus })
+        .eq("id", deviceId);
+
+      if (error) throw error;
+      setDevices((prev) =>
+        prev.map((d) =>
+          d.id === deviceId ? { ...d, is_admin_device: !currentStatus } : d,
+        ),
+      );
+    } catch (err: any) {
+      console.error("Error updating admin device status:", err);
+      alert(err?.message || "Failed to update admin device status.");
     } finally {
       setActionLoading(null);
     }
@@ -159,6 +182,9 @@ export default function DeviceManagement() {
                       <div className="text-xs text-muted-foreground">
                         {device.profiles?.email}
                       </div>
+                      <div className="text-[10px] text-gray-400 mt-1 font-mono" title={device.device_uuid}>
+                        ID: {device.device_uuid?.substring(0, 16)}...
+                      </div>
                     </TableCell>
                     <TableCell className="px-3 py-3">
                       <div className="flex items-center gap-2">
@@ -192,23 +218,34 @@ export default function DeviceManagement() {
                       </div>
                     </TableCell>
                     <TableCell className="px-3 py-3 text-center">
-                      {device.is_authorized ? (
-                        <Badge
-                          variant="secondary"
-                          className="rounded-md border-0 bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400"
-                        >
-                          <CheckCircle2 size={10} className="mr-1 inline" />
-                          Authorized
-                        </Badge>
-                      ) : (
-                        <Badge
-                          variant="secondary"
-                          className="rounded-md border-0 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400"
-                        >
-                          <ShieldAlert size={10} className="mr-1 inline" />
-                          Pending
-                        </Badge>
-                      )}
+                      <div className="flex flex-col items-center gap-1">
+                        {device.is_admin_device && (
+                          <Badge
+                            variant="secondary"
+                            className="rounded-md border-0 bg-purple-500/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-purple-700 dark:text-purple-400"
+                          >
+                            <Crown size={10} className="mr-1 inline" />
+                            Admin Device
+                          </Badge>
+                        )}
+                        {device.is_active ? (
+                          <Badge
+                            variant="secondary"
+                            className="rounded-md border-0 bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400"
+                          >
+                            <CheckCircle2 size={10} className="mr-1 inline" />
+                            Authorized
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="secondary"
+                            className="rounded-md border-0 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400"
+                          >
+                            <ShieldAlert size={10} className="mr-1 inline" />
+                            Pending
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="px-2 py-3 text-center">
                       <DropdownMenu>
@@ -233,13 +270,13 @@ export default function DeviceManagement() {
                             onSelect={() => {
                               toggleAuthorization(
                                 device.id,
-                                device.is_authorized,
+                                device.is_active,
                               );
                             }}
                             disabled={actionLoading === device.id}
-                            className={`cursor-pointer ${device.is_authorized ? "text-red-500 focus:bg-red-500/10" : "text-blue-500 focus:bg-blue-500/10 font-bold"}`}
+                            className={`cursor-pointer ${device.is_active ? "text-red-500 focus:bg-red-500/10" : "text-blue-500 focus:bg-blue-500/10 font-bold"}`}
                           >
-                            {device.is_authorized ? (
+                            {device.is_active ? (
                               <div className="flex items-center">
                                 <XCircle size={14} className="mr-2" /> Revoke
                                 Authorization
@@ -248,6 +285,27 @@ export default function DeviceManagement() {
                               <div className="flex items-center">
                                 <CheckCircle size={14} className="mr-2" />{" "}
                                 Authorize Device
+                              </div>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="bg-border" />
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              toggleAdminDevice(
+                                device.id,
+                                device.is_admin_device ?? false,
+                              );
+                            }}
+                            disabled={actionLoading === device.id}
+                            className={`cursor-pointer ${device.is_admin_device ? "text-orange-500 focus:bg-orange-500/10" : "text-purple-500 focus:bg-purple-500/10"}`}
+                          >
+                            {device.is_admin_device ? (
+                              <div className="flex items-center">
+                                <XCircle size={14} className="mr-2" /> Remove Admin Access
+                              </div>
+                            ) : (
+                              <div className="flex items-center">
+                                <Crown size={14} className="mr-2" /> Make Admin Device
                               </div>
                             )}
                           </DropdownMenuItem>

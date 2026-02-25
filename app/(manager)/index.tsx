@@ -434,7 +434,16 @@ export default function ManagerDashboard() {
 
                 {/* My Attendance Section (Personal Tracking) */}
                 <View className="mb-8">
-                    <Text className="text-lg font-bold text-gray-900 dark:text-white mb-4">My Attendance</Text>
+                    <View className="flex-row items-center justify-between mb-4">
+                        <Text className="text-lg font-bold text-gray-900 dark:text-white">My Attendance</Text>
+                        <TouchableOpacity
+                            onPress={() => router.push('/history')}
+                            className="flex-row items-center bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-lg"
+                        >
+                            <HistoryIcon size={14} color="#6B7280" className="mr-1" />
+                            <Text className="text-xs font-medium text-gray-600 dark:text-gray-400">View History</Text>
+                        </TouchableOpacity>
+                    </View>
 
                     {!attendance ? (
                         <ActionCard

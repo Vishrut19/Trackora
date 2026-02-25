@@ -21,8 +21,14 @@ const fetchWithTimeout = (url: RequestInfo, options: RequestInit = {}): Promise<
       clearTimeout(timeout);
     });
   }
+  // Some carriers/networks block requests without a standard User-Agent
+  const headers = new Headers(options.headers as HeadersInit);
+  if (!headers.has('User-Agent')) {
+    headers.set('User-Agent', 'WorkFlow/1.0 (com.vishrut19.WorkFlow; Android)');
+  }
   return fetch(url, {
     ...options,
+    headers,
     signal: controller.signal,
   }).finally(() => clearTimeout(timeout));
 };

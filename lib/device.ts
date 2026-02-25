@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Application from 'expo-application';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import 'react-native-get-random-values';
@@ -17,34 +16,20 @@ const DEVICE_ID_KEY = 'workflow_device_id';
 
 /**
  * Get unique device identifier
- * On Android: Uses androidId
- * On iOS: Uses identifierForVendor
- * Fallback: Generates and saves a UUID if native modules fail
+ * Uses a persisted UUID that survives app reinstalls (stored in AsyncStorage)
+ * This ensures device authorization remains stable across app updates/reinstalls
  */
 export async function getDeviceId(): Promise<string> {
-  // Try to get existing saved ID first
+  // Always use the saved ID if it exists - this ensures consistency
   const savedId = await AsyncStorage.getItem(DEVICE_ID_KEY);
-  if (savedId) return savedId;
-
-  let deviceId = '';
-
-  try {
-    if (Platform.OS === 'android') {
-      deviceId = Application.getAndroidId();
-    } else if (Platform.OS === 'ios') {
-      deviceId = (await Application.getIosIdForVendorAsync()) || '';
-    }
-  } catch (error) {
-    console.warn('Native Device ID failed, falling back to UUID:', error);
+  if (savedId) {
+    return savedId;
   }
 
-  // If no native ID found, generate an unique one and save it
-  if (!deviceId || deviceId === 'unknown-android' || deviceId === 'unknown-ios') {
-    deviceId = `dev-${uuidv4()}`;
-  }
-
-  await AsyncStorage.setItem(DEVICE_ID_KEY, deviceId);
-  return deviceId;
+  // Generate a new persistent ID only if none exists
+  const newDeviceId = `dev-${uuidv4()}`;
+  await AsyncStorage.setItem(DEVICE_ID_KEY, newDeviceId);
+  return newDeviceId;
 }
 
 /**
