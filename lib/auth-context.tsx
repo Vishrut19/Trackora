@@ -19,9 +19,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Get initial session with proper error handling
-        supabase.auth.getSession()
-            .then(({ data: { session } }) => {
+        const SESSION_TIMEOUT_MS = 10000; // 10 seconds - prevents indefinite loader on poor network
+
+        const getSessionWithTimeout = () =>
+            Promise.race([
+                supabase.auth.getSession().then(({ data: { session } }) => session),
+                new Promise<null>((resolve) =>
+                    setTimeout(() => {
+                        console.warn('⚠️ getSession timed out (network may be slow or unavailable)');
+                        resolve(null);
+                    }, SESSION_TIMEOUT_MS)
+                ),
+            ]);
+
+        getSessionWithTimeout()
+            .then((session) => {
                 setSession(session);
                 setLoading(false);
             })

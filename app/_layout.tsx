@@ -18,6 +18,8 @@ function RootLayoutNav() {
   const [loadingRole, setLoadingRole] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     const handleRouting = async () => {
       console.log('🔍 Routing check:', { loading, session: !!session, segments });
 
@@ -33,23 +35,27 @@ function RootLayoutNav() {
 
       console.log('📍 Current location:', { inAuthGroup, hasSession: !!session });
 
-      if (!session) {
-        // No session - redirect to auth pages if not already there
-        if (!inAuthGroup) {
-          const hasVisited = await AsyncStorage.getItem(HAS_VISITED_KEY);
+      try {
+        if (!session) {
+          // No session - redirect to auth pages if not already there
+          if (!inAuthGroup) {
+            const hasVisited = await AsyncStorage.getItem(HAS_VISITED_KEY);
+            if (cancelled) return;
 
-          console.log('👤 Not authenticated, hasVisited:', hasVisited);
+            console.log('👤 Not authenticated, hasVisited:', hasVisited);
 
-          if (hasVisited) {
-            console.log('➡️ Redirecting to LOGIN');
-            router.replace('/auth/login');
-          } else {
-            console.log('➡️ Redirecting to SIGNUP');
-            await AsyncStorage.setItem(HAS_VISITED_KEY, 'true');
-            router.replace('/auth/signup');
+            if (hasVisited) {
+              console.log('➡️ Redirecting to LOGIN');
+              router.replace('/auth/login');
+            } else {
+              console.log('➡️ Redirecting to SIGNUP');
+              await AsyncStorage.setItem(HAS_VISITED_KEY, 'true');
+              router.replace('/auth/signup');
+            }
           }
+          return;
         }
-      } else {
+
         // Has session - verify device before redirecting or allowing access
         if (inAuthGroup) {
           console.log('➡️ On auth page with session, waiting for signup to complete...');
@@ -66,26 +72,29 @@ function RootLayoutNav() {
               .eq('id', session.user.id)
               .maybeSingle();
 
-            if (data && !error) {
+            if (!cancelled && data && !error) {
               console.log('👤 User role fetched:', data.role);
               setRole(data.role);
             }
           } catch (e) {
             console.error('Error fetching role:', e);
           } finally {
-            setLoadingRole(false);
+            if (!cancelled) setLoadingRole(false);
           }
         }
+
+        if (cancelled) return;
 
         // Not on auth pages - do device verification
         try {
           const deviceInfo = await getDeviceInfo();
+          if (cancelled) return;
 
           // Retry device check a few times (device might still be registering)
           let devices = null;
           let retries = 3;
 
-          while (retries > 0) {
+          while (retries > 0 && !cancelled) {
             const { data, error } = await supabase
               .from('user_devices')
               .select('*')
@@ -111,13 +120,17 @@ function RootLayoutNav() {
             }
           }
 
+          if (cancelled) return;
+
           const isDeviceValid = devices && devices.length > 0;
 
           if (!isDeviceValid) {
             console.log('🚫 Device not authorized after retries. Signing out.');
             await supabase.auth.signOut();
-            Alert.alert('Unauthorized Device', 'This device is not registered for your account. Please contact your administrator.');
-            return; // Exit, signOut will trigger re-route
+            if (!cancelled) {
+              Alert.alert('Unauthorized Device', 'This device is not registered for your account. Please contact your administrator.');
+            }
+            return;
           }
 
           console.log('✅ Device verified successfully');
@@ -134,12 +147,14 @@ function RootLayoutNav() {
         } catch (e) {
           console.error('Device check failed', e);
         }
+      } finally {
+        if (!cancelled) setIsCheckingFirstVisit(false);
       }
-
-      setIsCheckingFirstVisit(false);
     };
 
     handleRouting();
+
+    return () => { cancelled = true; };
   }, [session, loading, segments, role]);
 
   if (loading || isCheckingFirstVisit) {
