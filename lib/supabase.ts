@@ -5,12 +5,37 @@ import 'react-native-url-polyfill/auto';
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
+const NETWORK_TIMEOUT_MS = 30000;
+
+/**
+ * Custom fetch with extended timeout for slow mobile networks.
+ * Supabase requests can fail on poor connections without this.
+ */
+const fetchWithTimeout = (url: RequestInfo, options: RequestInit = {}): Promise<Response> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), NETWORK_TIMEOUT_MS);
+  const originalSignal = options.signal;
+  if (originalSignal) {
+    originalSignal.addEventListener('abort', () => {
+      controller.abort();
+      clearTimeout(timeout);
+    });
+  }
+  return fetch(url, {
+    ...options,
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeout));
+};
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+  },
+  global: {
+    fetch: fetchWithTimeout,
   },
 });
 
@@ -19,15 +44,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
  * Returns a user-friendly message if so, otherwise null.
  */
 export function getNetworkErrorMessage(error: any): string | null {
-  const msg = error?.message || '';
-  if (
-    error instanceof TypeError && msg.includes('Network request failed') ||
-    msg.includes('Failed to fetch') ||
+  const msg = String(error?.message || '').toLowerCase();
+  const isNetworkError =
+    msg.includes('network request failed') ||
+    msg.includes('failed to fetch') ||
     msg.includes('network') ||
-    msg.includes('ECONNREFUSED') ||
-    msg.includes('ETIMEDOUT')
-  ) {
-    return 'Unable to connect to the server. Please check your internet connection and try again.';
+    msg.includes('econnrefused') ||
+    msg.includes('etimedout') ||
+    msg.includes('aborted') ||
+    error?.name === 'AbortError';
+  if (isNetworkError) {
+    return 'Unable to connect. Please check your internet connection and try again.';
   }
   return null;
 }
