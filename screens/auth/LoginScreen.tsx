@@ -138,9 +138,11 @@ export default function LoginScreen() {
       router.replace("/");
     } catch (err: any) {
       const networkMsg = getNetworkErrorMessage(err);
-      const message =
-        networkMsg || err.message || "An unexpected error occurred";
-      Alert.alert(networkMsg ? "Connection Error" : "Login Failed", message);
+      const message = networkMsg || err.message || 'An unexpected error occurred';
+      const alertMessage = networkMsg
+        ? 'Unable to connect to server.\n\nIf you are on JIO network, please try:\n• Switching to WiFi\n• Using another network (Airtel/BSNL)\n• Enabling a VPN'
+        : message;
+      Alert.alert(networkMsg ? 'Connection Error' : 'Login Failed', alertMessage);
       setError(message);
     } finally {
       setLoading(false);
