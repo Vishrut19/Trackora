@@ -17,103 +17,36 @@ export default function LoginScreen() {
   const [error, setError] = useState("");
 
   const handleLogin = async () => {
-    console.log("SUPABASE URL:", process.env.EXPO_PUBLIC_SUPABASE_URL);
-    console.log(
-      "ANON KEY (first 20):",
-      process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.slice(0, 20),
-    );
     if (!email.trim() || !password) {
-      setError("Please enter email and password");
+      setError('Please enter email and password');
       return;
     }
 
     setLoading(true);
-    setError("");
+    setError('');
 
-        try {
-            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-                email: email.trim().toLowerCase(),
-                password,
-            });
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
       if (authError) throw authError;
 
       const deviceInfo = await getDeviceInfo();
-      const deviceId = deviceInfo.deviceId;
-      console.log('📱 Device ID:', deviceId);
-      Alert.alert('Debug', `Device ID: ${deviceId}`);
 
-      // First check: query ALL devices with this device_uuid to see what's in DB
-      const { data: allDevices, error: allDevicesError } = await supabase
-        .from('user_devices')
-        .select('*');
-      
-      console.log('🔍 ALL devices in DB:', allDevices);
-      const matchingDevice = allDevices?.find(d => d.device_uuid === deviceId);
-      console.log('🔍 Matching device:', matchingDevice);
-      Alert.alert('Debug', `Found: ${matchingDevice ? 'YES' : 'NO'} | Admin: ${matchingDevice?.is_admin_device}`);
-
-      // Check if this is an admin device (query by device_uuid only, not user_id)
-      let { data: adminDevices, error: adminDeviceError } = await supabase
-        .from('user_devices')
-        .select('*')
-        .eq('device_uuid', deviceId)
-        .eq('is_admin_device', true)
-        .eq('is_active', true)
-        .limit(1);
-
-      console.log('🔍 Admin device query result:', { adminDevices, adminDeviceError });
-
-      // Fallback: check by device model if UUID doesn't match
-      if (!adminDevices || adminDevices.length === 0) {
-        console.log('🔍 Trying fallback: checking by device model:', deviceInfo.modelName);
-        const { data: modelDevices } = await supabase
-          .from('user_devices')
-          .select('*')
-          .eq('model', deviceInfo.modelName)
-          .eq('is_admin_device', true)
-          .eq('is_active', true)
-          .limit(1);
-        
-        if (modelDevices && modelDevices.length > 0) {
-          console.log('🔍 Found admin device by model:', modelDevices);
-          adminDevices = modelDevices;
-          // Note: We don't update the UUID here - admin device records should stay tied to their original device
-        }
-      }
-
-      Alert.alert('Debug', `Admin devices found: ${adminDevices?.length || 0}`);
-
-      if (adminDeviceError) {
-        console.error('❌ Admin device check error:', adminDeviceError);
-        throw adminDeviceError;
-      }
-
-      const isAdminDevice = adminDevices && adminDevices.length > 0;
-      console.log('✅ Is admin device:', isAdminDevice);
-
-      // Admin device can login to ANY account (staff/manager/admin)
-      if (isAdminDevice) {
-        console.log('🔓 Admin device detected - allowing login');
-        Alert.alert('Success', 'Admin device detected - allowing login');
-        // Allow login - admin device bypasses normal device binding
-        router.replace("/");
-        return;
-      }
-
-      // Normal device check - must be registered to this user
+      // Get all active devices for this user
       const { data: devices, error: deviceError } = await supabase
         .from('user_devices')
         .select('*')
         .eq('user_id', authData.user.id)
-        .eq('device_uuid', deviceInfo.deviceId)
         .eq('is_active', true);
 
       if (deviceError) throw deviceError;
 
       if (!devices || devices.length === 0) {
-        // No device found - auto-register this device for the user
-        console.log('📝 Auto-registering device for user:', authData.user.id);
+        // No device registered at all - first time setup
+        // Auto-register this device
         const { error: insertError } = await supabase
           .from('user_devices')
           .insert({
@@ -124,18 +57,50 @@ export default function LoginScreen() {
             is_active: true,
             is_admin_device: false,
           });
-        
-        if (insertError) {
-          console.error('❌ Device registration failed:', insertError);
+
+        if (insertError) throw insertError;
+        // Continue to login successfully
+
+      } else if (devices.length === 1) {
+        // Exactly 1 device registered - safe to auto-update UUID
+        // (handles reinstall / new APK changing UUID)
+        const isCurrentDevice = devices[0].device_uuid === deviceInfo.deviceId;
+
+        if (!isCurrentDevice) {
+          // UUID changed - update to new UUID silently
+          const { error: updateError } = await supabase
+            .from('user_devices')
+            .update({
+              device_uuid: deviceInfo.deviceId,
+              model: deviceInfo.modelName || deviceInfo.deviceName || null,
+              os_version: deviceInfo.platform || null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', devices[0].id);
+
+          if (updateError) throw updateError;
+        }
+        // Continue to login successfully
+
+      } else {
+        // Multiple devices registered - strict check
+        // Only allow if current device UUID matches one of them
+        const isAuthorized = devices.some(
+          d => d.device_uuid === deviceInfo.deviceId
+        );
+
+        if (!isAuthorized) {
+          // Sign out and block - suspicious activity
           await supabase.auth.signOut();
           throw new Error(
-            "This device is not authorized. Please contact admin or login from your registered device.",
+            'This device is not authorized. Please contact your administrator.'
           );
         }
-        console.log('✅ Device auto-registered successfully');
+        // Continue to login successfully
       }
 
-      router.replace("/");
+      router.replace('/');
+
     } catch (err: any) {
       const networkMsg = getNetworkErrorMessage(err);
       const message = networkMsg || err.message || 'An unexpected error occurred';
@@ -214,6 +179,19 @@ export default function LoginScreen() {
             loading={loading}
             disabled={!email || !password}
           />
+
+          <View className="mt-4 items-center">
+            <Link href="/auth/forgot-password" asChild>
+              <Pressable>
+                <Text
+                  style={{ color: linkColor }}
+                  className="font-bold text-sm"
+                >
+                  Forgot Password?
+                </Text>
+              </Pressable>
+            </Link>
+          </View>
 
           <View className="mt-6 flex-row justify-center flex-wrap">
             <Text className="text-gray-500 dark:text-gray-400 text-sm">
